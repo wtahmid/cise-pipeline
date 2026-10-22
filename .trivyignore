@@ -1,0 +1,5 @@
+# Findings accepted with justification (kept forever; not a secret to hide)
+# Format: <CVE-ID>:<RANGE...>:<PACKAGE>
+
+# Base-image OS CVEs with no fix published upstream (documented in docs/quality-gates.md).
+Debian trixie's packed libs; see trivy-action soft-fail policy.

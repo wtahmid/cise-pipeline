@@ -1,0 +1,46 @@
+name: Reusable - SBOM Generation
+
+# Generates a CycloneDX SBOM from the REAL environment, not a guess from a
+# requirements file. The SBOM is evidence to keep and review later; it is not
+# a pass/fail signal, so this job always succeeds.
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: Directory containing the Python project (pyproject.toml)
+        required: true
+        type: string
+      python-version:
+        description: Python version to set up
+        type: string
+        default: "3.11"
+
+jobs:
+  sbom:
+    name: SBOM (CycloneDX)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-python-cached
+        with:
+          python-version: ${{ inputs.python-version }}
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: Install project + cyclonedx-bom
+        run: pip install -e ".[dev]" cyclonedx-bom
+
+      - name: Generate CycloneDX SBOM from the environment
+        run: cyclonedx-py environment --output-format json --output-file sbom.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: ${{ inputs.working-directory }}/sbom.json
+          if-no-files-found: error
+          retention-days: 30

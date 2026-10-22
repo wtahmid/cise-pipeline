@@ -1,0 +1,87 @@
+name: Reusable - Container Scan & SBOM
+
+# Builds the Docker image, generates a Syft SBOM, and runs Trivy against the
+# built image. Trivy's table output is for humans; its SARIF output is the
+# actual gate, uploaded to GitHub code scanning. Container CVE findings are
+# soft-fail by default (see docs/quality-gates.md), so the pipeline runs
+# green unless `soft-fail: false` is set in the caller.
+
+on:
+  workflow_call:
+    inputs:
+      dockerfile-directory:
+        description: Directory containing the Dockerfile to build and scan
+        required: true
+        type: string
+      image-tag:
+        description: Local tag to build the image under
+        type: string
+        default: "pipeline-scan-target:ci"
+      fail-on-severity:
+        description: >
+          Comma-separated severities that fail the job (trivy-action's severity
+          input)
+        type: string
+        default: "CRITICAL,HIGH"
+      trivyignore-path:
+        description: >
+          Optional path to a .trivyignore file listing accepted, justified
+          findings
+        type: string
+        default: ""
+      soft-fail:
+        description: >
+          If true, findings are reported but do NOT fail the job (base-image
+          OS CVEs with no fix published yet)
+        type: boolean
+        default: false
+
+jobs:
+  container-scan:
+    name: Container Scan (Trivy) + SBOM (Syft)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t ${{ inputs.image-tag }} ${{ inputs.dockerfile-directory }}
+
+      - name: SBOM (Syft)
+        run: syft ${{ inputs.image-tag }} -o cyclonedx-json > ${{ inputs.image-tag }}.cyclonedx.json
+
+      - name: Upload image SBOM
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-sbom-cyclonedx
+          path: ${{ inputs.image-tag }}.cyclonedx.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Trivy table (readable log)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ inputs.image-tag }}
+          format: table
+          severity: ${{ inputs.fail-on-severity }}
+          exit-code: "0"
+          trivyignores: ${{ inputs.trivyignore-path }}
+
+      - name: Trivy SARIF (the gate)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ inputs.image-tag }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: ${{ inputs.fail-on-severity }}
+          exit-code: ${{ inputs.soft-fail && '0' || '1' }}
+          trivyignores: ${{ inputs.trivyignore-path }}
+
+      - name: Upload SARIF to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif

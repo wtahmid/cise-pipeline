@@ -1,0 +1,62 @@
+name: CISE — CI/CD Security & SBOM Gate
+
+# Runs on every push/PR to main. The `gate` job is the single named status
+# check a branch-protection rule can require, so a consumer gets one blocking
+# check instead of four.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Required only for the container-scan job's SARIF upload; the top-level
+# permission keeps the default token least-privilege for the other jobs.
+permissions:
+  contents: read
+
+jobs:
+  # ---- Stage 1: secrets -------------------------------------------------
+  secrets-scan:
+    uses: ./.github/workflows/reuse-secrets-scan.yml
+
+  # ---- Stage 2: source + dependencies ---------------------------------
+  sast-sca:
+    uses: ./.github/workflows/reuse-sast-sca.yml
+    with:
+      working-directory: ./demo-app
+      python-version: "3.11"
+
+  # ---- Stage 3: SBOM --------------------------------------------------
+  sbom:
+    uses: ./.github/workflows/reuse-sbom.yml
+    with:
+      working-directory: ./demo-app
+      python-version: "3.11"
+
+  # ---- Stage 4: container CVE scan ------------------------------------
+  container-scan:
+    uses: ./.github/workflows/reuse-container-scan.yml
+    with:
+      dockerfile-directory: ./demo-app
+      image-tag: demo-app:${{ github.sha }}
+      fail-on-severity: "CRITICAL,HIGH"
+      soft-fail: false
+    permissions:
+      contents: read
+      security-events: write
+
+  # ---- Gate ---------------------------------------------------------
+  gate:
+    name: Security Gate
+    runs-on: ubuntu-latest
+    needs: [secrets-scan, sast-sca, sbom, container-scan]
+    if: always()
+    steps:
+      - name: Fail if any hard-fail stage failed
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+            echo "One or more security stages failed."
+            exit 1
+          fi
+          echo "All CISE stages passed."

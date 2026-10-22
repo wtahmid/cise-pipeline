@@ -1,0 +1,88 @@
+name: Reusable - SAST & SCA
+
+# Two independent, independently testable jobs:
+#   - SAST: bandit on the project source (code flaws)
+#   - SCA: pip-audit on the installed environment (vulnerable dependencies)
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: Directory containing the Python project (pyproject.toml)
+        required: true
+        type: string
+      python-version:
+        description: Python version to set up
+        type: string
+        default: "3.11"
+
+jobs:
+  sast:
+    name: SAST (bandit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-python-cached
+        with:
+          python-version: ${{ inputs.python-version }}
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Run bandit
+        run: |
+          bandit -r src \\
+            --severity-level medium \\
+            -f json -o bandit-report.json
+          bandit -r src --severity-level medium
+
+      - name: Upload SAST report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: ${{ inputs.working-directory }}/bandit-report.json
+          if-no-files-found: error
+          retention-days: 30
+
+  sca:
+    name: SCA (pip-audit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-python-cached
+        with:
+          python-version: ${{ inputs.python-version }}
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: Install the project (and upgrade toolchain first)
+        run: |
+          # The Ubuntu runner's bundled pip/setuptools are frequently behind
+          # on known CVEs; upgrade first so pip-audit reports the *project's*
+          # dependencies, not the toolchain.
+          python -m pip install --upgrade pip setuptools
+          pip install -e ".[dev]"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Run pip-audit
+        run: pip-audit --skip-editable
+
+      - name: Upload SCA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-report
+          path: ${{ inputs.working-directory }}/pip-audit-report.txt
+          if-no-files-found: ignore
+          retention-days: 30

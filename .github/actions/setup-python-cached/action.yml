@@ -1,0 +1,23 @@
+name: setup-python-cached
+
+description: >
+  Sets up Python with pip caching keyed to a consumer's pyproject.toml.
+
+inputs:
+  python-version:
+    description: Python version to install
+    required: true
+  working-directory:
+    description: >
+      Directory containing pyproject.toml, used as the cache key's dependency
+      path (so the cache busts when the project's deps change).
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: pip
+        cache-dependency-path: ${{ inputs.working-directory }}/pyproject.toml
