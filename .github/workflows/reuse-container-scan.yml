@@ -49,15 +49,22 @@ jobs:
       - name: Build image
         run: docker build -t ${{ inputs.image-tag }} ${{ inputs.dockerfile-directory }}
 
+      - name: Install Syft (CLI for SBOM generation)
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/aquasecurity/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          syft version
+
       - name: SBOM (Syft)
-        run: syft ${{ inputs.image-tag }} -o cyclonedx-json > ${{ inputs.image-tag }}.cyclonedx.json
+        # colon-free artifact name: the image tag contains a ':' which GitHub
+        # rejects inside upload-artifact paths.
+        run: syft ${{ inputs.image-tag }} -o cyclonedx-json > image-sbom.cdx.json
 
       - name: Upload image SBOM
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: image-sbom-cyclonedx
-          path: ${{ inputs.image-tag }}.cyclonedx.json
+          path: image-sbom.cdx.json
           if-no-files-found: ignore
           retention-days: 30
 
