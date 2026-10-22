@@ -54,9 +54,15 @@ jobs:
     if: always()
     steps:
       - name: Fail if any hard-fail stage failed
+        # NOTE: use the boolean expression directly as a step `if:` condition.
+        # Never string-compare it in bash (the "${{ }}" -> "true" coercion makes
+        # `[[ "true" == "true" ]]` always true). A skipped `if:` step does not
+        # fail the job.
+        if: contains(needs.*.result, 'failure')
         run: |
-          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
-            echo "One or more security stages failed."
-            exit 1
-          fi
-          echo "All CISE stages passed."
+          echo "One or more security stages failed."
+          exit 1
+
+      - name: All CISE stages passed
+        if: success()
+        run: echo "All CISE stages passed."
