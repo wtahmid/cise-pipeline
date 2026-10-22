@@ -36,9 +36,7 @@ jobs:
 
       - name: Run bandit
         run: |
-          bandit -r src \\
-            --severity-level medium \\
-            -f json -o bandit-report.json
+          bandit -r src --severity-level medium -f json -o bandit-report.json
           bandit -r src --severity-level medium
 
       - name: Upload SAST report
