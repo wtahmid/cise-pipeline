@@ -9,7 +9,7 @@ critical is found:
 | Secrets | [Gitleaks](https://github.com/gitleaks/gitleaks) | Accidentally committed tokens, API keys, passwords (full git history) |
 | SAST + SCA | [bandit](https://bandit.readthedocs.io) + [pip-audit](https://pypi.org/project/pip-audit) | Python code flaws + vulnerable dependencies |
 | SBOM | [CycloneDX](https://cyclonedx.org) (`cyclonedx-py`) | A machine-readable bill of materials — "what's *actually* in this environment?" |
-| Container | [Trivy](https://trivy.dev) + [Syft](https://github.com/aquasecurity/syft) | OS-package & dependency CVEs in the built image + SBOM of the image |
+|| Container | [Trivy](https://trivy.dev) + [Syft](https://github.com/aquasecurity/syft) | OS-package & dependency CVEs in the built image, plus an image SBOM. Container CVE is **soft-fail** by default (see docs) — findings still upload as SARIF to code scanning. |
 
 **Design principles** (sourced from leading public DevSecOps repos):
 
