@@ -30,6 +30,8 @@ critical is found:
 
 ---
 
+![CI/CD Security & SBOM Gate](https://github.com/wtahmid/cise-pipeline/actions/workflow/ci.yml/badge?branch=main&event=pull_request)
+
 ## Quick start — add it to your repo
 
 ```bash
