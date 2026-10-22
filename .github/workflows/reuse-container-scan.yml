@@ -49,9 +49,9 @@ jobs:
       - name: Build image
         run: docker build -t ${{ inputs.image-tag }} ${{ inputs.dockerfile-directory }}
 
-      - name: Install Syft (CLI for SBOM generation)
+      - name: Install Syft (SBOM generator)
         run: |
-          curl -sSfL https://raw.githubusercontent.com/aquasecurity/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          curl -sSfL https://get.anchore.io/syft | sh -s -- -b /usr/local/bin
           syft version
 
       - name: SBOM (Syft)
