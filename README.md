@@ -141,6 +141,19 @@ cise/
 
 ---
 
+## Contributing
+
+No Docker is needed for the code stages — `scripts/run_pipeline.sh` verifies
+`bandit`, `pip-audit`, the CycloneDX SBOM, and `trivy fs` (SARIF) locally. The
+container stages (Trivy image + Syft SBOM) run on GitHub-hosted runners.
+
+1. Add a stage as a reusable workflow under `.github/workflows/reuse-<name>.yml`.
+2. Wire it into the `ci.yml` orchestrator (add the new job name to `needs:`).
+3. Keep the demo app stdlib-only — the cleanest possible SBOM baseline.
+4. See [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md),
+   [`docs/SECURITY.md`](docs/SECURITY.md), and
+   [`docs/quality-gates.md`](docs/quality-gates.md) for the full policy.
+
 ## What this repo is / is not
 
 - **It is** a reusable security gate you can drop into any Python service repo.
