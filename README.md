@@ -9,7 +9,7 @@ critical is found:
 | Secrets | [Gitleaks](https://github.com/gitleaks/gitleaks) | Accidentally committed tokens, API keys, passwords (full git history) |
 | SAST + SCA | [bandit](https://bandit.readthedocs.io) + [pip-audit](https://pypi.org/project/pip-audit) | Python code flaws + vulnerable dependencies |
 | SBOM | [CycloneDX](https://cyclonedx.org) (`cyclonedx-py`) | A machine-readable bill of materials — "what's *actually* in this environment?" |
-| Container | [Trivy](https://trivy.dev) + [Syft](https://github.com/aquasecurity/syft) | OS-package & dependency CVEs in the built image + SBOM of the image |
+|| Container | [Trivy](https://trivy.dev) + [Syft](https://github.com/aquasecurity/syft) | OS-package & dependency CVEs in the built image, plus an image SBOM. Container CVE is **soft-fail** by default (see docs) — findings still upload as SARIF to code scanning. |
 
 **Design principles** (sourced from leading public DevSecOps repos):
 
@@ -29,6 +29,8 @@ critical is found:
    against something genuine, not a placeholder.
 
 ---
+
+![CI/CD Security & SBOM Gate](https://github.com/wtahmid/cise-pipeline/actions/workflow/ci.yml/badge?branch=main&event=pull_request)
 
 ## Quick start — add it to your repo
 
@@ -138,6 +140,19 @@ cise/
 ```
 
 ---
+
+## Contributing
+
+No Docker is needed for the code stages — `scripts/run_pipeline.sh` verifies
+`bandit`, `pip-audit`, the CycloneDX SBOM, and `trivy fs` (SARIF) locally. The
+container stages (Trivy image + Syft SBOM) run on GitHub-hosted runners.
+
+1. Add a stage as a reusable workflow under `.github/workflows/reuse-<name>.yml`.
+2. Wire it into the `ci.yml` orchestrator (add the new job name to `needs:`).
+3. Keep the demo app stdlib-only — the cleanest possible SBOM baseline.
+4. See [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md),
+   [`docs/SECURITY.md`](docs/SECURITY.md), and
+   [`docs/quality-gates.md`](docs/quality-gates.md) for the full policy.
 
 ## What this repo is / is not
 

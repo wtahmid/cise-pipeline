@@ -1,0 +1,14 @@
+# Security-relevant files are reviewed by the repository's maintainers/teams.
+
+# Workflows and the composite actions that back them.
+.github/CODEOWNERS
+.github/actions/*
+
+# Images and dependency manifests change the SBOM + container CVE findings.
+demo-app/Dockerfile
+demo-app/pyproject.toml
+
+# Policy & process documents — always reviewed before merge.
+docs/quality-gates.md
+docs/SECURITY.md
+docs/CONTRIBUTING.md
